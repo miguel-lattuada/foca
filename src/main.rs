@@ -69,7 +69,11 @@ impl BatchHttpExecutor {
     pub fn spawn(self) -> Self {
         let mut tasks = (0..self.batch_config.number_of_requests).map(|_| {
             let url = self.batch_config.url.to_owned();
-            let future = async { surf::get(url).send().await };
+            let future = async {
+                let res = surf::get(url).send().await;
+                println!("Response: {:?}", res);
+                res
+            };
             HttpTask::from_future(future, self.sender.clone())
         });
 
@@ -78,8 +82,10 @@ impl BatchHttpExecutor {
             self.sender.send(safe_task).ok();
         }
 
-        // Do not expect more messages
-        drop(&self.sender);
+        // drop(sender);
+        // {
+            // self.sender;
+        // }
 
         // let url = &self.batch_config.url;
 
@@ -95,7 +101,7 @@ impl BatchHttpExecutor {
 
         // self.sender.send(Arc::new(task)).ok();
 
-        // drop(self.sender);
+        // drop(&mut self.sender);
 
         // while let Ok(task) = self.receiver.recv() {
         //     let mut locked_future = task.future.lock().unwrap();
@@ -108,6 +114,7 @@ impl BatchHttpExecutor {
         //         }
         //     }
         // }
+
         self
     }
 
@@ -117,7 +124,12 @@ impl BatchHttpExecutor {
      * Poll the future
      * Put it back if it's still pending
      */
-    pub fn run(self) -> Self {
+    pub fn run(self) {
+        // TODO: check how to deal with partially moved values
+        {
+            self.sender;
+        }
+
         while let Ok(task) = self.receiver.recv() {
             let mut locked_future = task.future.lock().unwrap();
             if let Some(mut future) = locked_future.take() {
@@ -129,8 +141,6 @@ impl BatchHttpExecutor {
                 }
             }
         }
-
-        self
     }
 }
 
@@ -175,8 +185,8 @@ impl LoadTestBuilder {
 
             loop {
                 if sec_spent <= self.duration {
-                    BatchHttpExecutor::new(&self.url, &self.rate).spawn();
-                    // BatchHttpExecutor::new(&self.url, &self.rate).spawn().run();
+                    // TODO: Put this into a thread
+                    BatchHttpExecutor::new(&self.url, &self.rate).spawn().run();
 
                     sleep(Duration::from_secs(1));
                     sec_spent += 1;
