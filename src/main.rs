@@ -10,10 +10,13 @@ use std::{
         Arc, Mutex,
     },
     task::Context,
-    thread::sleep,
+    thread::{sleep, spawn},
     time::Duration,
 };
 use surf::{Error, Response};
+use threading::ThreadPool;
+
+mod threading;
 
 type RequestFuture = Result<Response, Error>;
 
@@ -48,19 +51,19 @@ struct BatchHttpExecutor {
 }
 
 impl BatchHttpExecutor {
-    pub fn new(url: &String, number_of_requests: &u8) -> Self {
+    pub fn new(url: String, number_of_requests: u8) -> Self {
         let (sender, receiver) = sync_channel::<Arc<HttpTask>>(8);
 
         Self {
             batch_config: BatchHttpConfig {
-                url: url.to_string(),
-                number_of_requests: *number_of_requests,
+                url,
+                number_of_requests: number_of_requests,
             },
             receiver,
             sender,
         }
     }
-    
+
     /**
      * Create tasks based on config batch
      * Send those tasks thorugh channel
@@ -84,7 +87,7 @@ impl BatchHttpExecutor {
 
         // drop(sender);
         // {
-            // self.sender;
+        // self.sender;
         // }
 
         // let url = &self.batch_config.url;
@@ -179,14 +182,20 @@ impl LoadTestBuilder {
         self
     }
 
-    pub fn execute(self) -> Self {
+    pub fn execute(&self) {
         if self.duration > 0 && self.rate > 0 {
+            let thread_pool = ThreadPool::new(4);
             let mut sec_spent = 0;
 
             loop {
                 if sec_spent <= self.duration {
-                    // TODO: Put this into a thread
-                    BatchHttpExecutor::new(&self.url, &self.rate).spawn().run();
+                    // TODO: check how to avoid creating a copy for each thread
+                    let rate = self.rate;
+                    let url = String::from(&self.url);
+
+                    thread_pool.execute(move || {
+                        BatchHttpExecutor::new(url, rate).spawn().run();
+                    });
 
                     sleep(Duration::from_secs(1));
                     sec_spent += 1;
@@ -195,8 +204,6 @@ impl LoadTestBuilder {
                 break;
             }
         }
-
-        self
     }
 }
 
