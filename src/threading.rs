@@ -48,9 +48,15 @@ impl Worker {
     pub fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
         let thread = thread::spawn(move || loop {
             let receiver = receiver.lock().expect("[MUTEX::POISONED]");
-            let job = receiver.recv().unwrap();
-            println!("Worker {} got a job; executing.", id);
-            job.call_box();
+
+            if let Ok(job) = receiver.recv() {
+                drop(receiver);
+
+                // TODO: Remove println
+                println!("Worker {} got a job; executing.", id);
+                job.call_box();
+                println!("Worker {} finished job", id);
+            }
         });
 
         Worker { id, thread }
