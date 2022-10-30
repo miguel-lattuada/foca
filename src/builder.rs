@@ -1,4 +1,3 @@
-use std::{thread::sleep, time::Duration};
 use crate::{threading::ThreadPool, batch::BatchHttpExecutor};
 
 pub struct LoadTestBuilder {
