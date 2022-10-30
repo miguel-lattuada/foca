@@ -46,14 +46,11 @@ impl LoadTestBuilder {
                         BatchHttpExecutor::new(url, rate).spawn().run();
                     });
 
-                    // sleep(Duration::from_secs(1));
                     sec_spent += 1;
                     continue;
                 }
                 break;
             }
         }
-        // TODO: properly wait for tasks to finish
-        sleep(Duration::from_secs(5));
     }
 }

@@ -15,20 +15,25 @@ impl<F: FnOnce()> FnBox for F {
 
 type Job = Box<dyn FnBox + Send + 'static>;
 
+pub enum Message {
+    Process(Job),
+    Terminate,
+}
+
 pub struct ThreadPool {
     workers: Vec<Worker>,
-    sender: mpsc::Sender<Job>,
+    sender: mpsc::Sender<Message>,
 }
 
 pub struct Worker {
     id: usize,
-    thread: thread::JoinHandle<()>,
+    thread: Option<thread::JoinHandle<()>>,
 }
 
 impl ThreadPool {
     pub fn new(size: usize) -> ThreadPool {
         assert!(size > 0);
-        let (sender, receiver) = mpsc::channel::<Job>();
+        let (sender, receiver) = mpsc::channel::<Message>();
         let receiver = Arc::new(Mutex::new(receiver));
 
         let workers = (0..size)
@@ -40,25 +45,49 @@ impl ThreadPool {
 
     pub fn execute(&self, f: impl FnOnce() + Send + 'static) {
         let job = Box::new(f);
-        self.sender.send(job).unwrap();
+        self.sender.send(Message::Process(job)).unwrap();
+    }
+}
+
+impl Drop for ThreadPool {
+    fn drop(&mut self) {
+        for _ in &mut self.workers {
+            self.sender.send(Message::Terminate).unwrap();
+        }
+
+        for worker in &mut self.workers {
+            println!("Shutting down worker {}", worker.id);
+            if let Some(thread) = worker.thread.take() {
+                thread.join().unwrap();
+            }
+        }
     }
 }
 
 impl Worker {
-    pub fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Job>>>) -> Worker {
+    pub fn new(id: usize, receiver: Arc<Mutex<mpsc::Receiver<Message>>>) -> Worker {
         let thread = thread::spawn(move || loop {
             let receiver = receiver.lock().expect("[MUTEX::POISONED]");
 
-            if let Ok(job) = receiver.recv() {
+            if let Ok(message) = receiver.recv() {
                 drop(receiver);
 
-                // TODO: Remove println
-                println!("Worker {} got a job; executing.", id);
-                job.call_box();
-                println!("Worker {} finished job", id);
+                match message {
+                    Message::Process(job) => {
+                        println!("Worker {} got a job; executing.", id);
+                        job.call_box();
+                        println!("Worker {} finished job", id);
+                    }
+                    Message::Terminate => {
+                        break;
+                    }
+                }
             }
         });
 
-        Worker { id, thread }
+        Worker {
+            id,
+            thread: Some(thread),
+        }
     }
 }
