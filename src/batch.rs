@@ -45,7 +45,7 @@ impl HttpTask {
 impl ArcWake for HttpTask {
     fn wake_by_ref(arc_self: &Arc<Self>) {
         let cloned = arc_self.clone();
-        arc_self.notify.send(cloned);
+        arc_self.notify.send(cloned).ok();
     }
 }
 
@@ -69,19 +69,17 @@ impl BatchHttpExecutor {
      * Drop channel sender
      */
     pub fn spawn(self) -> Self {
-        let mut tasks = (0..self.batch_config.number_of_requests).map(|_| {
+        for _ in 0..self.batch_config.number_of_requests {
             let url = self.batch_config.url.to_owned();
+
             let future = async {
                 let res = surf::get(url).send().await;
                 // Used to debug
                 res
             };
-            HttpTask::from_future(future, self.sender.clone())
-        });
 
-        while let Some(task) = tasks.next() {
-            let safe_task = Arc::new(task);
-            self.sender.send(safe_task).ok();
+            let task = Arc::new(HttpTask::from_future(future, self.sender.clone()));
+            self.sender.send(task).ok();
         }
 
         self
