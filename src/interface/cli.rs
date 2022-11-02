@@ -32,9 +32,13 @@ pub struct Command {
     #[arg(short, long)]
     pub duration: u8,
 
-    /// Amount of requests sent per second
+    /// Number of requests sent per second
     #[arg(short, long)]
     pub rate: u8,
+
+    /// Number of threads
+    #[arg(short, long, default_value_t = 4)]
+    pub workers: u8,
 }
 
 #[derive(Args)]

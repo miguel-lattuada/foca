@@ -1,1 +1,7 @@
-`cargo run -- -u https://google.com -r 5 -d 5`
+### Command:
+`cargo run -- --help`
+
+### Subcommands:
+**cli** `cargo run -- cli --help`
+
+**file** `cargo run -- file --help`
