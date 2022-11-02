@@ -1,10 +1,10 @@
-mod batch;
-mod builder;
+mod core;
 mod interface;
-mod threading;
 
 use clap::Parser;
-use interface::{Cli, Commands};
+use interface::{
+    cli::Cli, cli::Commands, cli_executor::CliExecutor, executor_trait::InterfaceExecutor,
+};
 
 fn main() {
     let cli = Cli::parse();
@@ -12,13 +12,13 @@ fn main() {
     match &cli.commands {
         Commands::Cli(command) => {
             // TODO: use command interface executor
+            CliExecutor::new(command).execute()
         }
         Commands::File(file) => {
             // TODO: use file interface executor
+            unimplemented!()
         }
     }
-    
-
     // println!("{:?}", cli.url);
 
     // let matches = command!()

@@ -1,4 +1,4 @@
-use crate::{threading::ThreadPool, batch::BatchHttpExecutor};
+use super::{batch::BatchHttpExecutor, threading::ThreadPool};
 
 pub struct LoadTestBuilder {
     url: String,
@@ -15,17 +15,17 @@ impl LoadTestBuilder {
         }
     }
 
-    pub fn url(&mut self, url: String) -> &mut Self {
+    pub fn url(mut self, url: String) -> Self {
         self.url = url;
         self
     }
 
-    pub fn rate(&mut self, rate: u8) -> &mut Self {
+    pub fn rate(mut self, rate: u8) -> Self {
         self.rate = rate;
         self
     }
 
-    pub fn duration(&mut self, duration: u8) -> &mut Self {
+    pub fn duration(mut self, duration: u8) -> Self {
         self.duration = duration;
         self
     }
