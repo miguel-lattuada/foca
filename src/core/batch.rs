@@ -51,7 +51,7 @@ impl ArcWake for HttpTask {
 
 impl BatchHttpExecutor {
     pub fn new(url: String, number_of_requests: u8) -> Self {
-        let (sender, receiver) = sync_channel::<Arc<HttpTask>>(8);
+        let (sender, receiver) = sync_channel::<Arc<HttpTask>>(256);
 
         Self {
             batch_config: BatchHttpConfig {
@@ -73,6 +73,7 @@ impl BatchHttpExecutor {
             let url = self.batch_config.url.to_owned();
 
             let future = async {
+                println!("Request made");
                 let res = surf::get(url).send().await;
                 // Used to debug
                 res
