@@ -7,5 +7,8 @@ edition = "2021"
 futures = "0.3.25"
 surf = "2.3.2"
 clap = { version = "4.0.18", features = ["std", "derive"] }
+serde_json = "1.0.87"
+serde_yaml = "0.9.14"
+serde = { version = "1.0.147", features = ["derive"] }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

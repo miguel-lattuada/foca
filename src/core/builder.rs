@@ -1,3 +1,5 @@
+use std::{thread, time::Duration};
+
 use super::{batch::BatchHttpExecutor, threading::ThreadPool};
 
 pub struct LoadTestBuilder {
@@ -51,6 +53,8 @@ impl LoadTestBuilder {
                     thread_pool.execute(move || {
                         BatchHttpExecutor::new(url, rate).spawn().run();
                     });
+
+                    thread::sleep(Duration::from_secs(1));
 
                     sec_spent += 1;
                     continue;
