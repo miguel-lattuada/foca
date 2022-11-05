@@ -1,6 +1,7 @@
 use futures::{
     future::BoxFuture,
     task::{waker_ref, ArcWake},
+    FutureExt,
 };
 use std::{
     future::Future,
@@ -8,7 +9,7 @@ use std::{
         mpsc::{sync_channel, Receiver, SyncSender},
         Arc, Mutex,
     },
-    task::Context,
+    task::{Context, Poll},
 };
 use surf::{Error, Response};
 
@@ -17,6 +18,10 @@ type RequestFuture = Result<Response, Error>;
 pub struct HttpTask {
     future: Mutex<Option<BoxFuture<'static, RequestFuture>>>,
     notify: SyncSender<Arc<HttpTask>>,
+}
+
+pub struct HttpTaskResult {
+    success: bool,
 }
 
 pub struct BatchHttpConfig {
@@ -28,6 +33,7 @@ pub struct BatchHttpExecutor {
     batch_config: BatchHttpConfig,
     receiver: Receiver<Arc<HttpTask>>,
     sender: SyncSender<Arc<HttpTask>>,
+    results: Vec<HttpTask>,
 }
 
 impl HttpTask {
@@ -56,10 +62,11 @@ impl BatchHttpExecutor {
         Self {
             batch_config: BatchHttpConfig {
                 url,
-                number_of_requests: number_of_requests,
+                number_of_requests,
             },
             receiver,
             sender,
+            results: vec![],
         }
     }
 
@@ -73,9 +80,7 @@ impl BatchHttpExecutor {
             let url = self.batch_config.url.to_owned();
 
             let future = async {
-                println!("Request made");
                 let res = surf::get(url).send().await;
-                // Used to debug
                 res
             };
 
@@ -88,7 +93,7 @@ impl BatchHttpExecutor {
 
     /**
      * Loop over the received tasks through the channel
-     * Take the future from the task
+     * Take the locked future from the task
      * Poll the future
      * Put it back if it's still pending
      */
@@ -99,16 +104,37 @@ impl BatchHttpExecutor {
             self.sender;
         }
 
+        let mut results: Vec<HttpTaskResult> = Vec::new();
+
+        // TODO: please refactor
         while let Ok(task) = self.receiver.recv() {
             let mut locked_future = task.future.lock().unwrap();
             if let Some(mut future) = locked_future.take() {
                 let waker = waker_ref(&task);
                 let context = &mut Context::from_waker(&*waker);
 
-                if future.as_mut().poll(context).is_pending() {
+                let pin = future.as_mut().poll(context);
+
+                if pin.is_pending() {
                     *locked_future = Some(future);
+                } else {
+                    // TODO: Check how to get future result from Polling it
+                    let success_poll =
+                        pin.map(|future_result| future_result.unwrap().status().is_success());
+
+                    if let Poll::Ready(success) = success_poll {
+                        results.push(HttpTaskResult { success });
+                    }
                 }
             }
         }
+        
+        // TODO: remove printable and return Vec http result only
+        let printable = results
+            .into_iter()
+            .map(|task| task.success)
+            .collect::<Vec<bool>>();
+
+        println!("{:?}", printable);
     }
 }
