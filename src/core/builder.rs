@@ -1,5 +1,10 @@
 use std::{thread, time::Duration};
 
+use crate::aggregator::{
+    aggregator_console::AggregatorConsole,
+    aggregator_trait::{AggregateElement, Aggregator},
+};
+
 use super::{batch::BatchHttpExecutor, threading::ThreadPool};
 
 pub struct LoadTestBuilder {
@@ -51,7 +56,20 @@ impl LoadTestBuilder {
                     let url = String::from(&self.url);
 
                     thread_pool.execute(move || {
-                        BatchHttpExecutor::new(url, rate).spawn().run();
+                        let tasks = BatchHttpExecutor::new(url, rate).spawn().run();
+
+                        // Use aggregator executor, with the -o (--output) option
+                        let agg = AggregatorConsole::aggregate(
+                            tasks
+                                .into_iter()
+                                .map(|task| AggregateElement {
+                                    success: task.success,
+                                    status_code: task.status_code,
+                                })
+                                .collect::<Vec<AggregateElement>>(),
+                        );
+
+                        AggregatorConsole::out(&agg);
                     });
 
                     thread::sleep(Duration::from_secs(1));

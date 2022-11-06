@@ -1,5 +1,6 @@
 mod core;
 mod interface;
+mod aggregator;
 
 use clap::Parser;
 use interface::{

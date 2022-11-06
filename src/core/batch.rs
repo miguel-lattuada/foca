@@ -1,7 +1,6 @@
 use futures::{
     future::BoxFuture,
     task::{waker_ref, ArcWake},
-    FutureExt,
 };
 use std::{
     future::Future,
@@ -21,7 +20,8 @@ pub struct HttpTask {
 }
 
 pub struct HttpTaskResult {
-    success: bool,
+    pub success: bool,
+    pub status_code: u16,
 }
 
 pub struct BatchHttpConfig {
@@ -97,7 +97,7 @@ impl BatchHttpExecutor {
      * Poll the future
      * Put it back if it's still pending
      */
-    pub fn run(self) {
+    pub fn run(self) -> Vec<HttpTaskResult> {
         // TODO: check how to deal with partially moved values
         // { self.sender; } = drop(self.sender) ?
         {
@@ -119,22 +119,18 @@ impl BatchHttpExecutor {
                     *locked_future = Some(future);
                 } else {
                     // TODO: Check how to get future result from Polling it
-                    let success_poll =
-                        pin.map(|future_result| future_result.unwrap().status().is_success());
+                    let status_poll = pin.map(|future_result| future_result.unwrap().status());
 
-                    if let Poll::Ready(success) = success_poll {
-                        results.push(HttpTaskResult { success });
+                    if let Poll::Ready(status) = status_poll {
+                        results.push(HttpTaskResult {
+                            success: status.is_success(),
+                            status_code: status as u16,
+                        });
                     }
                 }
             }
         }
-        
-        // TODO: remove printable and return Vec http result only
-        let printable = results
-            .into_iter()
-            .map(|task| task.success)
-            .collect::<Vec<bool>>();
 
-        println!("{:?}", printable);
+        results
     }
 }
