@@ -14,12 +14,12 @@ impl<'a> CliExecutor<'a> {
 
 impl<'a> InterfaceExecutor for CliExecutor<'a> {
     fn execute(&self) {
-
         Executor {
             duration: self.command.duration,
             rate: self.command.rate,
             url: self.command.url.to_owned(),
             workers: self.command.workers,
-        }.execute();
+        }
+        .execute();
     }
 }

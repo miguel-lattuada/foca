@@ -53,8 +53,9 @@ impl<'a> InterfaceExecutor for FileExecutor<'a> {
                 duration: config.duration,
                 rate: config.rate,
                 url: config.url,
-                workers: config.workers
-            }.execute();
+                workers: config.workers,
+            }
+            .execute();
         }
     }
 }
