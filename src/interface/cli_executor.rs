@@ -1,4 +1,4 @@
-use crate::core::builder::LoadTestBuilder;
+use crate::core::executor::Executor;
 
 use super::{cli::Command, executor_trait::InterfaceExecutor};
 
@@ -14,11 +14,12 @@ impl<'a> CliExecutor<'a> {
 
 impl<'a> InterfaceExecutor for CliExecutor<'a> {
     fn execute(&self) {
-        LoadTestBuilder::new()
-            .duration(self.command.duration)
-            .rate(self.command.rate)
-            .url(self.command.url.to_owned())
-            .workers(self.command.workers)
-            .execute()
+
+        Executor {
+            duration: self.command.duration,
+            rate: self.command.rate,
+            url: self.command.url.to_owned(),
+            workers: self.command.workers,
+        }.execute();
     }
 }

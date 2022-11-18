@@ -1,4 +1,4 @@
-use crate::core::builder::LoadTestBuilder;
+use crate::core::executor::Executor;
 
 use super::{cli::File, executor_trait::InterfaceExecutor};
 use serde::Deserialize;
@@ -49,12 +49,12 @@ impl<'a> InterfaceExecutor for FileExecutor<'a> {
         }
 
         if let Some(config) = config {
-            LoadTestBuilder::new()
-                .duration(config.duration)
-                .rate(config.rate)
-                .url(config.url.to_owned())
-                .workers(config.workers)
-                .execute()
+            Executor {
+                duration: config.duration,
+                rate: config.rate,
+                url: config.url,
+                workers: config.workers
+            }.execute();
         }
     }
 }
