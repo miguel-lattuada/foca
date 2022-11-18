@@ -1,20 +1,14 @@
-use super::aggregator_trait::{AggregateElement, Aggregator};
+use super::{aggregator_trait::Aggregator, aggregator_utils::count_results};
+use crate::common::types::ExecutionResult;
 
 const OUTPUT: &'static str =
-    "Number of requests: {requests}\nSuccess requests: {success}\nError requests: {errors}";
+    "Number of requests: {requests}\nSuccess requests: {success}\nError requests: {errors}\n";
 
 pub struct AggregatorConsole;
 
 impl Aggregator for AggregatorConsole {
-    fn aggregate(elements: Vec<AggregateElement>) -> String {
-        let total = elements.len();
-        let success = elements
-            .iter()
-            .filter(|agg_element| agg_element.success)
-            .collect::<Vec<_>>()
-            .len();
-
-        let errors = total - success;
+    fn aggregate(elements: Vec<ExecutionResult>) -> String {
+        let (total, success, errors) = count_results(elements);
 
         OUTPUT
             .replace("{requests}", &total.to_string())

@@ -1,8 +1,8 @@
-use std::{result, thread, time::Duration};
+use std::{thread, time::Duration};
 
-use crate::aggregator::{
-    aggregator_console::AggregatorConsole,
-    aggregator_trait::{AggregateElement, Aggregator},
+use crate::{
+    aggregator::aggregator_executor::AggregatorExecutor,
+    common::types::{ExecutionResult, ExecutionResultOutputType},
 };
 
 use super::{batch::BatchHttpExecutor, threading::ThreadPool};
@@ -29,19 +29,16 @@ impl Executor {
                     thread_pool.execute(move || {
                         let tasks = BatchHttpExecutor::new(url, rate).spawn().run();
 
-                        // // Use aggregator executor, with the -o (--output) option
-                        let agg = AggregatorConsole::aggregate(
+                        let elements = tasks.iter().map(|task| ExecutionResult {
+                            success: task.success,
+                            status_code: task.status_code,
+                        });
 
-                        tasks
-                            .into_iter()
-                            .map(|task| AggregateElement {
-                                success: task.success,
-                                status_code: task.status_code,
-                            })
-                            .collect::<Vec<AggregateElement>>()
+                        // TODO: map option -o (--output) to execution result output type enum
+                        AggregatorExecutor::execute(
+                            ExecutionResultOutputType::Console,
+                            elements.collect::<Vec<ExecutionResult>>(),
                         );
-
-                        AggregatorConsole::out(&agg);
                     });
 
                     thread::sleep(Duration::from_secs(1));

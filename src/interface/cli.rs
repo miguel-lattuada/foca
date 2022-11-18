@@ -1,4 +1,4 @@
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 
 #[derive(Parser)]
 #[command(
@@ -39,6 +39,10 @@ pub struct Command {
     /// Number of threads
     #[arg(short, long, default_value_t = 4)]
     pub workers: u8,
+
+    /// Output type
+    #[arg(short, long, value_enum)]
+    pub output: OutputType,
 }
 
 #[derive(Args)]
@@ -50,4 +54,10 @@ pub struct File {
     /// json config file
     #[arg(short, long)]
     pub json: Option<String>,
+}
+
+#[derive(Clone, ValueEnum)]
+pub enum OutputType {
+    Console,
+    File,
 }
