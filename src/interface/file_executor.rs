@@ -10,6 +10,7 @@ struct Config {
     pub duration: u8,
     pub rate: u8,
     pub workers: u8,
+    pub output: String,
 }
 
 pub struct FileExecutor<'a> {
@@ -54,6 +55,7 @@ impl<'a> InterfaceExecutor for FileExecutor<'a> {
                 rate: config.rate,
                 url: config.url,
                 workers: config.workers,
+                output: config.output,
             }
             .execute();
         }

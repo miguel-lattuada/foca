@@ -1,4 +1,5 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use std::string::ToString;
 
 #[derive(Parser)]
 #[command(
@@ -60,4 +61,13 @@ pub struct File {
 pub enum OutputType {
     Console,
     File,
+}
+
+impl ToString for OutputType {
+    fn to_string(&self) -> String {
+        match self {
+            OutputType::Console => String::from("console"),
+            OutputType::File => String::from("file"),
+        }
+    }
 }

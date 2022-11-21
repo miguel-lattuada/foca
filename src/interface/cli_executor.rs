@@ -19,6 +19,7 @@ impl<'a> InterfaceExecutor for CliExecutor<'a> {
             rate: self.command.rate,
             url: self.command.url.to_owned(),
             workers: self.command.workers,
+            output: self.command.output.to_string(),
         }
         .execute();
     }

@@ -1,4 +1,4 @@
-use std::{thread, time::Duration};
+use std::{str::FromStr, thread, time::Duration, sync::Arc};
 
 use crate::{
     aggregator::aggregator_executor::AggregatorExecutor,
@@ -12,6 +12,7 @@ pub struct Executor {
     pub rate: u8,
     pub duration: u8,
     pub workers: u8,
+    pub output: String,
 }
 
 impl Executor {
@@ -22,10 +23,12 @@ impl Executor {
 
             loop {
                 if sec_spent < self.duration {
-                    // TODO: check how to avoid creating a copy for each thread
+                    // TODO: if it make sense to use Arc
                     let rate = self.rate;
                     let url = String::from(&self.url);
+                    let output = String::from(&self.output);
 
+                    // TODO: check if we can use scoped threads
                     thread_pool.execute(move || {
                         let tasks = BatchHttpExecutor::new(url, rate).spawn().run();
 
@@ -34,9 +37,8 @@ impl Executor {
                             status_code: task.status_code,
                         });
 
-                        // TODO: map option -o (--output) to execution result output type enum
                         AggregatorExecutor::execute(
-                            ExecutionResultOutputType::Console,
+                            ExecutionResultOutputType::from_str(&output).unwrap(),
                             elements.collect::<Vec<ExecutionResult>>(),
                         );
                     });
