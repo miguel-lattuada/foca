@@ -56,12 +56,12 @@ impl ArcWake for HttpTask {
 }
 
 impl BatchHttpExecutor {
-    pub fn new(url: String, number_of_requests: u8) -> Self {
+    pub fn new(url: &str, number_of_requests: u8) -> Self {
         let (sender, receiver) = sync_channel::<Arc<HttpTask>>(256);
 
         Self {
             batch_config: BatchHttpConfig {
-                url,
+                url: url.to_string(),
                 number_of_requests,
             },
             receiver,

@@ -1,4 +1,4 @@
-use std::{str::FromStr, thread, time::Duration, sync::Arc};
+use std::{str::FromStr, sync::Arc, thread, time::Duration};
 
 use crate::{
     aggregator::aggregator_executor::AggregatorExecutor,
@@ -16,21 +16,26 @@ pub struct Executor {
 }
 
 impl Executor {
-    pub fn execute(&self) {
+    pub fn execute(self) {
+        let url = Arc::new(self.url.to_string());
+        let output = Arc::new(self.output.to_string());
+        let rate = Arc::new(self.rate);
+
         if self.duration > 0 && self.rate > 0 {
             let thread_pool = ThreadPool::new(self.workers as usize);
             let mut sec_spent = 0;
 
             loop {
-                if sec_spent < self.duration {
-                    // TODO: if it make sense to use Arc
-                    let rate = self.rate;
-                    let url = String::from(&self.url);
-                    let output = String::from(&self.output);
+                let shared_url = url.clone();
+                let shared_output = output.clone();
+                let shared_rate = rate.clone();
 
+                if sec_spent < self.duration {
                     // TODO: check if we can use scoped threads
                     thread_pool.execute(move || {
-                        let tasks = BatchHttpExecutor::new(url, rate).spawn().run();
+                        let tasks = BatchHttpExecutor::new(&shared_url, *shared_rate)
+                            .spawn()
+                            .run();
 
                         let elements = tasks.iter().map(|task| ExecutionResult {
                             success: task.success,
@@ -38,7 +43,7 @@ impl Executor {
                         });
 
                         AggregatorExecutor::execute(
-                            ExecutionResultOutputType::from_str(&output).unwrap(),
+                            ExecutionResultOutputType::from_str(&shared_output).unwrap(),
                             elements.collect::<Vec<ExecutionResult>>(),
                         );
                     });
